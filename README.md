@@ -1,6 +1,8 @@
 # batch-loader
 
-A lightweight, efficient data loader utility for batching multiple calls into a single operation. Particularly useful for optimizing database queries and API calls in JavaScript servers, Remix loaders, and React Server Components.
+A lightweight, efficient data loader utility for batching multiple requests into a single operation. Particularly useful for optimizing database queries and API calls in JavaScript servers, React Router loaders, and React Server Components.
+
+Your code can simply request individual records while the loader automatically combines these requests into efficient batch queries behind the scenes.
 
 Highly inspired by [GraphQL dataloader](https://github.com/graphql/dataloader) but smaller in scope.
 
@@ -24,6 +26,7 @@ npm install @ryanflorence/batch-loader
 import { batch } from "@ryanflorence/batch-loader";
 
 let loadStuff = batch(async keys => {
+  console.log("batching", keys);
   await new Promise(res => setTimeout(res, 2000));
   return keys.map(key => `Loaded ${key}`);
 });
@@ -46,7 +49,7 @@ console.log({ stuff, stuff2 });
 
 ## Important Notes
 
-- **Request-Scoped Caching**: Loader caches are never explicitly cleared. The intended usage is to create loaders within the scope of a request or operation. When that operation completes, the cache is automatically garbage collected along with the loader instance. A convenient way to do this is with [async-provider](https://github.com/ryanflorence/async-provider). See the [movies example](./examples/movies/app.ts).
+- **Request-Scoped Caching**: Loader caches are never explicitly cleared. The intended usage is to create loaders within the scope of a request or operation. When that operation completes, the cache is automatically garbage collected along with the loader instance. A convenient way to do this is with [async-provider](https://github.com/ryanflorence/async-provider). See the [movies example](./examples/movies/app.ts#L10-L18).
 
 - **Batch Function Requirements**: Your batch function must return results in the same order as the input keys. This ensures the loader can correctly match results to individual requests.
 
