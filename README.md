@@ -20,32 +20,36 @@ npm install @ryanflorence/batch-loader
 
 ## Usage
 
-```typescript
+```js
 import { batch } from "@ryanflorence/batch-loader";
 
-// Create a loader for users
-const loadUsers = batch(async (ids: string[]) => {
-  // Single query/request to load multiple users
-  const users = await db.users.findMany({
-    where: { id: { in: ids } },
-  });
-
-  // Must return array in same order as input ids
-  return ids.map(id => users.find(user => user.id === id));
+let loadStuff = batch(async keys => {
+  await new Promise(res => setTimeout(res, 2000));
+  return keys.map(key => `Loaded ${key}`);
 });
 
-// Use the loader - these will be batched automatically
-const [user1, user2] = await Promise.all([
-  loadUsers("1"),
-  loadUsers("2"),
-  loadUsers("2"), // will be de-duped
+let stuff = await Promise.all([
+  loadStuff("a"),
+  loadStuff("b"),
+  loadStuff("c"),
+  loadStuff("a"), // deduped
 ]);
+
+let stuff2 = await Promise.all([
+  loadStuff("a"), // cached
+  loadStuff("c"), // cached
+  loadStuff("d"), // only key in this batch
+]);
+
+console.log({ stuff, stuff2 });
 ```
 
 ## Important Notes
 
-- **Request-Scoped Caching**: Loader caches are never explicitly cleared. The intended usage is to create loaders within the scope of a request or operation. When that operation completes, the cache is automatically garbage collected along with the loader instance. A convenient way to do this is with [async-provider](https://github.com/ryanflorence/async-provider).
+- **Request-Scoped Caching**: Loader caches are never explicitly cleared. The intended usage is to create loaders within the scope of a request or operation. When that operation completes, the cache is automatically garbage collected along with the loader instance. A convenient way to do this is with [async-provider](https://github.com/ryanflorence/async-provider). See the [movies example](./examples/movies/app.ts).
+
 - **Batch Function Requirements**: Your batch function must return results in the same order as the input keys. This ensures the loader can correctly match results to individual requests.
+
 - **Error Handling**: If the batch function throws an error, all requests in that batch will receive the same error.
 
 ## API
