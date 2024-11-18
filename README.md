@@ -50,13 +50,13 @@ const [user1, user2] = await Promise.all([
 
 ## API
 
-### `batch<Key, T>(batchFn, options?)`
+### `batch<Key, T>(batcher, options?)`
 
 Creates a new data loader that batches calls.
 
 #### Parameters
 
-- `batchFn`: `(keys: Key[]) => Promise<T[]>`
+- `batcher`: `(keys: Key[]) => Promise<T[]>`
 
   - Function that loads multiple items in a single batch
   - Must return results in same order as input keys
