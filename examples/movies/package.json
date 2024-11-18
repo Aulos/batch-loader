@@ -1,0 +1,15 @@
+{
+  "name": "movies",
+  "type": "module",
+  "scripts": {
+    "start": "node --import tsimp/import app.ts",
+    "watch": "node --import tsimp/import --watch app.ts"
+  },
+  "dependencies": {
+    "@mjackson/node-fetch-server": "^0.2.0",
+    "@ryanflorence/async-provider": "^0.0.1",
+    "@types/better-sqlite3": "^7.6.11",
+    "better-sqlite3": "^11.5.0",
+    "tsimp": "2.0.12"
+  }
+}
