@@ -63,10 +63,10 @@ Creates a new data loader that batches calls.
 
 #### Parameters
 
-- `batcher`: `(keys: Key[]) => Promise<T[]>`
+- `batcher`: `(keys: Key[]) => Promise<T[] | Map<Key, T>>`
 
   - Function that loads multiple items in a single batch
-  - Must return results in same order as input keys
+  - Must return results in same order as input keys (if returns an array)
 
 - `options`: (optional)
   - `cacheMap`: Custom Map implementation for caching (e.g., LRUMap)
