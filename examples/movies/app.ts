@@ -24,7 +24,7 @@ let db = new Database(path.join(import.meta.dirname, "database.db"));
 async function batchMovies(ids: number[]) {
   let placeholders = ids.map(() => "?").join(",");
   let query = `
-    SELECT 
+    SELECT
       m.*,
       JSON_GROUP_ARRAY(DISTINCT mg.genre_id) as genre_ids,
       JSON_GROUP_ARRAY(DISTINCT mc.cast_id) as cast_ids
@@ -60,14 +60,16 @@ async function batchActors(ids: number[]) {
     WHERE actor.id IN (${placeholders})
     GROUP BY actor.id
   `;
-  return db
-    .prepare(query)
-    .all(ids)
-    .map((actor: any) => {
-      actor.movie_ids = JSON.parse(actor.movie_ids);
-      return actor as Actor;
-    })
-    .sort((a, b) => ids.indexOf(a.id) - ids.indexOf(b.id));
+  return new Map(
+    db
+      .prepare(query)
+      .all(ids)
+      .map((actor: any) => {
+        actor.movie_ids = JSON.parse(actor.movie_ids);
+        return actor as Actor;
+      })
+      .map((actor: Actor) => [actor.id, actor]),
+  );
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -134,6 +136,9 @@ async function MovieTile(id: number) {
   // it'll automatically batch in an efficient way
   let { loadMovie } = pull(loadersCtx);
   let movie = await loadMovie(id);
+  if (!movie) {
+    return html`<div>Movie not found</div>`;
+  }
 
   return html`
     <div>
@@ -159,20 +164,24 @@ async function MovieTile(id: number) {
 async function ActorPage(id: number) {
   let { loadActor } = pull(loadersCtx);
   let actor = await loadActor(id);
+  let markup: string;
+  if (!actor) {
+    markup = html`<div>Actor not found</div>`;
+  } else {
+    let threeColumnGridStyles =
+      "display: grid; grid-template-columns: repeat(3, 1fr); gap: 4rem";
 
-  let threeColumnGridStyles =
-    "display: grid; grid-template-columns: repeat(3, 1fr); gap: 4rem";
-
-  let markup = Layout(html`
-    <div style="max-width: 1200px; margin: auto;">
-      <h1 style="text-align: center">${actor.name}</h1>
-      <div style="${threeColumnGridStyles}">
-        ${await renderList(actor.movie_ids.map(MovieTile))}
+    markup = html`
+      <div style="max-width: 1200px; margin: auto;">
+        <h1 style="text-align: center">${actor.name}</h1>
+        <div style="${threeColumnGridStyles}">
+          ${await renderList(actor.movie_ids.map(MovieTile))}
+        </div>
       </div>
-    </div>
-  `);
+    `;
+  }
 
-  return new Response(markup, {
+  return new Response(Layout(markup), {
     headers: { "Content-Type": "text/html; charset=utf-8" },
   });
 }
@@ -180,9 +189,11 @@ async function ActorPage(id: number) {
 async function ActorLink(id: number) {
   let { loadActor } = pull(loadersCtx);
   let actor = await loadActor(id);
-  return html`<a href="${`/actor/${actor.id}`}"
-    >${actor.name} <small>(${actor.movie_ids.length})</small></a
-  >`;
+  return actor
+    ? html`<a href="${`/actor/${actor.id}`}"
+        >${actor.name} <small>(${actor.movie_ids.length})</small></a
+      >`
+    : html`<div>Actor not found</div>`;
 }
 
 async function MoviePage(id: number) {
@@ -191,23 +202,26 @@ async function MoviePage(id: number) {
 
   // load an individual movie
   let movie = await loadMovie(id);
+  let markup = movie
+    ? html`
+        <div style="max-width: 800px; margin: auto;">
+          <h1 style="text-align: center">${movie.title}</h1>
+          <img
+            src="${movie.thumbnail}"
+            style="width: 20rem; float: left; margin: 0 1rem 1rem 0"
+          />
+          <p>${movie.extract}</p>
+          <p>
+            <b>Cast</b>:
+            <span
+              >${await renderList(movie.cast_ids.map(ActorLink), " • ")}</span
+            >
+          </p>
+        </div>
+      `
+    : html`<div>Movie not found</div>`;
 
-  let markup = Layout(html`
-    <div style="max-width: 800px; margin: auto;">
-      <h1 style="text-align: center">${movie.title}</h1>
-      <img
-        src="${movie.thumbnail}"
-        style="width: 20rem; float: left; margin: 0 1rem 1rem 0"
-      />
-      <p>${movie.extract}</p>
-      <p>
-        <b>Cast</b>:
-        <span>${await renderList(movie.cast_ids.map(ActorLink), " • ")}</span>
-      </p>
-    </div>
-  `);
-
-  return new Response(markup, {
+  return new Response(Layout(markup), {
     headers: { "Content-Type": "text/html; charset=utf-8" },
   });
 }
