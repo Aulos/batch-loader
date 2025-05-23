@@ -62,13 +62,12 @@ async function batchActors(ids: number[]) {
   `;
   return new Map(
     db
-      .prepare(query)
+      .prepare<[number[]], Actor>(query)
       .all(ids)
-      .map((actor: any) => {
-        actor.movie_ids = JSON.parse(actor.movie_ids);
-        return actor as Actor;
-      })
-      .map((actor: Actor) => [actor.id, actor]),
+      .map((actor) => {
+        actor.movie_ids = JSON.parse((actor as any).movie_ids);
+        return [actor.id, actor] as const;
+      }),
   );
 }
 
